@@ -1,0 +1,13 @@
+[package]
+name = "rs-claybox-server"
+version = "0.1.0"
+authors = ["TheHellBox <hellboxstudio@yandex.ru>"]
+
+[dependencies]
+specs = "0.10.0"
+nalgebra = "0.13.1"
+nphysics3d = "*"
+ncollide="*"
+rlua="0.9.7"
+time="*"
+cobalt = "0.22.0"
