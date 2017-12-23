@@ -1,12 +1,14 @@
 extern crate cobalt;
 extern crate nalgebra;
-
+extern crate specs;
 #[macro_use]
 extern crate bytevec;
 
 mod network;
 mod world;
+mod lua;
 
+use specs::Join;
 use bytevec::{ByteEncodable, ByteDecodable};
 
 fn main() {
@@ -16,16 +18,29 @@ fn main() {
     println!("[Debug] Creating world...");
     let mut world = world::W_World::new();
     let ent = world.create_entity();
-    ent.set_model("./assets/models/cube.obj".to_string(), &world.world);
-    ent.set_texture("./assets/textures/err.png".to_string(), &world.world);
-    ent.set_size(0.1, &world.world);
-    ent.set_visible(true, &world.world);
+    println!("[Debug] Starting LUA...");
+    let lua = lua::lua::new();
+    lua.init();
+    lua.add_event("Update");
+    lua.std_lib();
+    let mut ents = vec![];
+    for entity in world.world.entities().join() {
+        ents.push(world::entity::ent{ent: entity});
+    }
+    lua.update(&world, &ents);
+    lua.run_all();
+    println!("[Debug] Server started!");
     loop{
+        lua.update(&world, &ents);
+        let mut ents = vec![];
+        for entity in world.world.entities().join() {
+            ents.push(world::entity::ent{ent: entity});
+        }
         let _ = server.accept();
         let net_ent = ent.to_network(&world.world);
         let ent_msg = net_ent.encode::<u8>().unwrap();
         let _ = server.send(ent_msg);
-        let old_pos = ent.get_pos(&world.world);
-        ent.set_pos(nalgebra::Point3::new(old_pos[0] + 0.01, old_pos[1], old_pos[2]), &world.world);
+        lua.call_event("Update", None);
+        lua.get_all(&mut world, &mut ents);
     }
 }

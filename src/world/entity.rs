@@ -3,6 +3,8 @@ use world::specs::{World, Entity};
 use nalgebra::{Point3, Vector3, Rotation3, Translation3};
 use network;
 use nalgebra;
+
+#[derive(PartialEq)]
 pub struct ent{
     pub ent: Entity
 }
