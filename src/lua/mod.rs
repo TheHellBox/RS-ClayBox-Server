@@ -42,13 +42,18 @@ impl UserData for Lua_Entity {
         methods.add_method_mut("get_pos", |_,ent: &mut Lua_Entity, ()| {
             Ok(ent.pos)
         });
-
+        methods.add_method_mut("get_id", |_,ent: &mut Lua_Entity, ()| {
+            Ok(ent.id)
+        });
         methods.add_method_mut("get_tex", |_,ent: &mut Lua_Entity, ()| {
             Ok(ent.tex.clone())
         });
 
         methods.add_method_mut("get_model", |_,ent: &mut Lua_Entity, ()| {
             Ok(ent.model.clone())
+        });
+        methods.add_method_mut("get_visible", |_,ent: &mut Lua_Entity, ()| {
+            Ok(ent.vis)
         });
     }
 }
@@ -165,6 +170,12 @@ impl lua{
                 };
                 luaents.set(id, l_ent);
                 ents.push(ent);
+                let code = format!(r#"
+                for k,v in pairs(__events["OnEntityCreate"]) do
+                    v(world.ents[{}])
+                end
+                "#, id);
+                self.run(code);
             }
         }
         else{
@@ -181,7 +192,14 @@ impl lua{
                     if !lua_ids.contains(&id) {
                         for x in 0..ents.len(){
                             if ents[x].ent.id() == *id {
+                                world.world.delete_entity(ents[x].ent);
                                 ents.remove(x);
+                                let code = format!(r#"
+                                for k,v in pairs(__events["OnEntityRemove"]) do
+                                    v({})
+                                end
+                                "#, id);
+                                self.run(code);
                                 break
                             }
                         }

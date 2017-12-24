@@ -1,6 +1,7 @@
 
 use std::collections::HashMap;
 use bytevec::{ByteEncodable, ByteDecodable};
+use lua::lua;
 
 use cobalt::{
     BinaryRateLimiter, Config, NoopPacketModifier, MessageKind, UdpSocket,
@@ -26,9 +27,19 @@ impl Network {
             conn.send(MessageKind::Instant, msg.clone());
         }
     }
-    pub fn accept(&mut self){
+    pub fn accept(&mut self, r_lua: &lua){
         while let Ok(event) = self.server.accept_receive() {
-            println!("{:?}", event);
+            match event{
+                ServerEvent::Message(id, message) => {
+                    let code = format!(r#"
+                    for k,v in pairs(__events["OnNetworkMessage"]) do
+                        v("{}")
+                    end
+                    "#, String::from_utf8(message).unwrap());
+                    r_lua.run(code);
+                },
+                _ => {}
+            }
         };
         self.server.send(true).is_ok();
     }
